@@ -1,7 +1,7 @@
 import casadi as ca
 import numpy as np
 from dynamics import nx, nu, f_dyn, u_w_hover  # Make sure dynamics.py is properly set up
-from utils import normalize_quaternion, make_X_guess, constant_control_guess
+from utils import normalize_quaternion, make_X_guess, constant_control_guess, best_time_guess
 from integrator import F_rk4
 import os
 import pandas as pd
@@ -44,16 +44,16 @@ def solve(cost_fn, x_target, x_init, N):
     # Decision variables
     X = opti.variable(nx, N+1)  # States
     U = opti.variable(nu, N)    # Controls
+    T = opti.variable(1)        # Time
     
     u_target = ca.DM.zeros(nu)
     u_target[0:4] = u_w_hover
 
+    dt = T/N
+
     test_x = x_init.full().flatten()
     test_u = u_target.full().flatten()
-    test_next = F_rk4(test_x, test_u, 0.01)
-    print("Test next state:", test_next)    
-    print("Initial cost:", cost_1(x_init, u_target, x_target))
-
+    test_next = F_rk4(test_x, test_u, dt)
 
     # Initial state constraint
     opti.subject_to(X[:,0] == x_init)
@@ -65,22 +65,20 @@ def solve(cost_fn, x_target, x_init, N):
         # Get current state and control
         x_k = X[:,k]
         u_k = U[:,k]
+        opti.subject_to(opti.bounded(0, U[0:4,k], 1))  # Motor speeds
+        opti.subject_to(opti.bounded(-1, U[4:8,k], 1))  # Tilt rates
+        opti.subject_to(opti.bounded(-1, U[8:12,k], 1))  # Roll rates
+        opti.subject_to(opti.bounded(-ca.pi/2, X[13:17, k], ca.pi/2))  # Pitch limits
+        opti.subject_to(opti.bounded(-ca.pi/2, X[17:21, k], ca.pi/2))  # Roll limits
         # Add stage cost
         J += cost_fn(x_k, u_k, x_target)
-        dt = 0.01
         x_next = F_rk4(x_k, u_k, dt)
         opti.subject_to(X[:,k+1] == x_next)
-            
+
+    J += T
     
-    # Control constraints
-    opti.subject_to(opti.bounded(0, U[0:4], 1))  # Motor speeds
-    opti.subject_to(opti.bounded(-1, U[4:8], 1))  # Tilt rates
-    opti.subject_to(opti.bounded(-1, U[8:12], 1))  # Roll rates
-    
-    # State constraints
-    opti.subject_to(opti.bounded(-ca.pi/2, X[13:17], ca.pi/2))  # Pitch limits
-    opti.subject_to(opti.bounded(-ca.pi/2, X[17:21], ca.pi/2))  # Roll limits
-    
+
+
     # Initial guess
 
     # Convert CasADi DMs to NumPy arrays
@@ -92,9 +90,11 @@ def solve(cost_fn, x_target, x_init, N):
     # Generate improved guesses
     X_guess = make_X_guess(x0, xf, N, q_start, q_end)  # shape: (nx, N+1)
     U_guess = constant_control_guess(u_hover, N)       # shape: (nu, N)
-    
+    T_guess = best_time_guess(x0, xf)
+
     opti.set_initial(X, X_guess)
     opti.set_initial(U, U_guess)
+    opti.set_initial(T, T_guess)
     opti.minimize(J)
 
     # Solver settings
@@ -121,11 +121,8 @@ def solve(cost_fn, x_target, x_init, N):
         print("Last Valid Control:", opti.debug.value(U))
         raise e
 
-    
-    
-
 # Horizon
-N = 20
+N = 50
 
 # Target State (Hover at Z = 2 m, 45 deg roll) ===
 x_target = ca.DM.zeros(nx)

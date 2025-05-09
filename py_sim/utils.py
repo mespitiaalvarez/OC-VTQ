@@ -112,3 +112,20 @@ def constant_control_guess(u_hover, N):
     import numpy as np
     return np.tile(u_hover.reshape(-1, 1), (1, N))
 
+def best_time_guess(x0, xf):
+    """
+    Estimate the best time to reach the target state from the initial state.
+    x0: initial state
+    xf: target state
+    """
+    cf = 4.0687e-7
+    w_max = 4720
+    t_max = cf * w_max**2  * 4
+    m = 1.587
+
+    # Estimate the best time to reach the target state from the initial state.
+    # This is a rough estimate using the position error and the maximum thrust.
+    # starting from rest, assuming constant accelleration.
+    F = w_max**2 * 4 * cf
+    return np.sqrt(2*m*np.linalg.norm(xf[0:3] - x0[0:3])/F)
+

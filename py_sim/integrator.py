@@ -17,3 +17,16 @@ Q_NORMALIZED = Q / Q_NORM
 XF[6:10] = Q_NORMALIZED
 F_rk4 = ca.Function('F', [X0, U0, DT], [XF], ['x0', 'u0','dt'], ['xf'])
 
+
+
+# x_sym = ca.SX.sym('x', nx)
+# u_sym = ca.SX.sym('u', nu)
+# dt = ca.SX.sym('dt')
+# integrator_cvodes = ca.integrator(
+#     'integrator_cvodes', 'cvodes', 
+#     {'x': x_sym, 'p': u_sym, 'ode': f_dyn(x_sym, u_sym)},
+#     {
+#         'tf': dt,  # Total simulation time
+#         'abstol': 1e-8,  # Absolute tolerance
+#     }
+# )
