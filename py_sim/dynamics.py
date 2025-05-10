@@ -52,7 +52,18 @@ for i in range(4):
     tau_B_thrust += ca.cross(rho_Bi, R_B_Pi @ thrust_i)
 
 # Definition of x_dot
-a_W = g * -e3 + (1 / m) * ca.mtimes(rotation_matrix_q(q_WB),f_B_thrust)  # Translational Dynamics
+R_WB = rotation_matrix_q(q_WB)
+v_B = ca.mtimes(R_WB.T, v_W)    # Body-frame velocity
+v_B_abs = ca.vertcat(-ca.fabs(v_B[0]) * v_B[0],
+                     -ca.fabs(v_B[1]) * v_B[1],
+                     -ca.fabs(v_B[2]) * v_B[2])  # -|v_i| * v_i for each axis
+# Drag coefficient matrix
+D_B = ca.diag([0.1, 0.1, 0.2])
+# Drag Force (in Body Frame)
+f_B_drag = ca.mtimes(D_B, v_B_abs)
+
+
+a_W = g * -e3 + (1 / m) * ca.mtimes(R_WB,f_B_thrust + f_B_drag)   # Translational Dynamics
 omega_dot_B = ca.mtimes(J_inv, (ca.cross(-omega_B, J @ omega_B) + tau_B_thrust + tau_B_drag)) # Rotational Dynamics
 q_dot_WB = 0.5 * ca.mtimes(Y(q_WB),omega_B) # Quaternion Dynamics
 theta_dot = theta_dot_max * u_theta

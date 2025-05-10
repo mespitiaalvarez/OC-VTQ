@@ -9,10 +9,10 @@ from integrator import F_rk4
 def cost(x, u, x_target):
 
     l_pos = 5
-    l_vel = 1
+    l_vel = 0.1
     l_ang_vel = 0.1
     l_control = 0.01
-    l_quat = 0.01
+    l_quat = 0.5
 
     position_error = ca.sumsqr(x[0:3] - x_target[0:3])  # Position error (x, y, z)
     velocity_error = ca.sumsqr(x[3:6] - x_target[3:6])  # Velocity error (vx, vy, vz)
@@ -77,7 +77,7 @@ def solve(cost_fn, x_target, x_init, N, dt):
         x_next = F_rk4(x_k, u_k, dt)
         opti.subject_to(X[:,k+1] == x_next)
             
-    
+    J += 10*ca.sumsqr(X[0:3, -1] - x_target[0:3])
 
     # Convert CasADi DMs to NumPy arrays
     x0 = np.array(x_init.full()).flatten()

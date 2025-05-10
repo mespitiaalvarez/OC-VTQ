@@ -9,7 +9,7 @@ from optimal_control import dt
 def main():
     # === Load NMPC Results === #
     use('TkAgg')  # or 'Qt5Agg', 'Agg', etc.
-    number = "2"
+    number = "1"
 
     str_xopt = "results/x_opt_" + number + ".csv"
     str_uopt = "results/u_opt_" + number + ".csv"

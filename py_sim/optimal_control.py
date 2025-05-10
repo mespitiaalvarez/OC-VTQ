@@ -6,18 +6,18 @@ import glob
 from optimization_problem import cost, solve
 import time
 
-dt = 0.1
+dt = 0.01
 def main():
     # Horizon
-    N = 50
+    N = 200
 
     # Target State (Hover at Z = 2 m, 45 deg roll) ===
     x_target = ca.DM.zeros(nx)
-    x_target[0] = 5  # Target Z position (hover)
-    x_target[1] = 0   # Target Z position (hover)
-    x_target[2] = 1  # Target Z position (hover)
-    x_target[6] = 0.924 # q _a 
-    x_target[7] = 0.383  # q_b
+    x_target[0] = 2# Target Z position (hover)
+    x_target[1] = 2 # Target Z position (hover)
+    x_target[2] = 2 # Target Z position (hover)
+    x_target[6] = 1 # q _a 
+    x_target[7] = 0  # q_b
 
     # Initial State Constraint (Starting at rest)
     x_init = ca.DM.zeros(nx)
@@ -29,8 +29,6 @@ def main():
     print(f"Time taken: {end_time - start_time} seconds")
 
 
-
-    
     save_dir = "results"
     # Saving the optimized state trajectory (x_opt) and control inputs (u_opt)
     x_ref = ca.repmat(x_target, 1, N + 1)
