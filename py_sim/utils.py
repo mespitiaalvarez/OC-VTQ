@@ -2,6 +2,31 @@ import casadi as ca
 import numpy as np
 from scipy.spatial.transform import Rotation as R, Slerp
 
+
+def quaternion_product(q1, q2): 
+    # Quaternion product
+    q1 = normalize_quaternion(q1)
+    q2 = normalize_quaternion(q2)
+    q_prod = ca.vertcat(q1[0]*q2[0] - q1[1]*q2[1] - q1[2]*q2[2] - q1[3]*q2[3],
+                        q1[0]*q2[1] + q1[1]*q2[0] + q1[2]*q2[3] - q1[3]*q2[2],
+                        q1[0]*q2[2] - q1[1]*q2[3] + q1[2]*q2[0] + q1[3]*q2[1],
+                        q1[0]*q2[3] + q1[1]*q2[2] - q1[2]*q2[1] + q1[3]*q2[0])
+    return q_prod
+
+def quaternion_conjugate(q):
+    # Quaternion conjugate
+    q = normalize_quaternion(q)
+    return ca.vertcat(q[0], -q[1], -q[2], -q[3])
+
+
+def quaternion_geo_distance(q1, q2):
+    # Quaternion geodesic distance
+    q1 = normalize_quaternion(q1)
+    q2 = normalize_quaternion(q2)
+    q_prod = ca.dot(q1, q2)
+    q_prod = ca.fabs(q_prod)
+    return 2*ca.acos(q_prod)
+
 def rotation_matrix(psi_i, theta_i, phi_i):
     # Defining the rotation matrix RB_Pi using yaw-pitch-roll (applied right to left)
     R = ca.SX.zeros(3, 3)
@@ -123,9 +148,14 @@ def best_time_guess(x0, xf):
     t_max = cf * w_max**2  * 4
     m = 1.587
 
-    # Estimate the best time to reach the target state from the initial state.
+    # Guess the best time to reach the target state from the initial state.
     # This is a rough estimate using the position error and the maximum thrust.
     # starting from rest, assuming constant accelleration.
+    # d = 1/2 * a * t^2
+    # a = F / m
+    # F = w_max**2 * 4 * cf
+    # d = 1/2 * (F / m) * t^2
+    # t = np.sqrt(2*m*d/F)
     F = w_max**2 * 4 * cf
     return np.sqrt(2*m*np.linalg.norm(xf[0:3] - x0[0:3])/F)
 

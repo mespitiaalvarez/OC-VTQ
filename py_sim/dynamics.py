@@ -15,7 +15,6 @@ g = 9.81
 l = 0.243
 psi = [pi / 4 + (i - 1) * pi / 2 for i in range(1, 5)]  
 e3 = ca.vertcat(0, 0, 1) 
-u_w_hover = 0.4293844144478733 # m * g / (4 * cf * (w_max ** 2))
 
 # Actuator Limits
 w_max = 4720

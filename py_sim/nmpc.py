@@ -5,18 +5,20 @@ from dynamics import f_dyn, nx, nu  # Make sure dynamics.py is properly set up
 import os
 import pandas as pd
 from optimization_problem import solve, cost_1
+from integrator import F_rk4
 
 
 # === NMPC Settings ===
-dt = 0.01  # Time step (10 ms)
-N = 20     # Shorter Prediction horizon (0.2 seconds)
-sim_time = 2.0  # Total simulation time (5 seconds)
-n_steps = int(sim_time / dt)
+dt = 0.1  # Time steps for optimization (s)
+N = 20     # Prediction horizon = number of steps 
+
+sim_time = 2.0  # Total simulation time 
+sim_time_steps = 0.1
+n_steps = int(sim_time / sim_time_steps)
 
 # Simulation Integrator
 x_sym = ca.SX.sym('x', nx)
 u_sym = ca.SX.sym('u', nu)
-integrator_cvodes = ca.integrator('integrator_cvodes', 'cvodes', {'x': x_sym, 'p': u_sym, 'ode': f_dyn(x_sym, u_sym)}, {'tf': dt, 'abstol': 1e-8, 'reltol': 1e-8, 'max_num_steps': 1000})
 
 # === Target State (Hover at Z = 2)
 x_target = ca.DM.zeros(nx)
@@ -43,7 +45,7 @@ for t in range(n_steps - 1):
     u_traj[:, t] = u_applied
 
     # Simulate one step with this control
-    result = integrator_cvodes(x0=x_current, p=u_applied)
+    result = F_rk4(x0 = x_current, u0 = u_applied, dt = sim_time_steps)
     x_next = result['xf']
 
     # Store results

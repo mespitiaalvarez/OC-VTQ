@@ -1,24 +1,31 @@
 import casadi as ca
 import numpy as np
-from dynamics import nx, nu, f_dyn, u_w_hover  # Make sure dynamics.py is properly set up
-from utils import normalize_quaternion, make_X_guess, constant_control_guess
+from dynamics import nx, nu, f_dyn  # Make sure dynamics.py is properly set up
+from utils import normalize_quaternion, make_X_guess, constant_control_guess, quaternion_geo_distance
 from integrator import F_rk4
 
 
 #Discrete Cost Function
-def cost_1(x, u, x_target):
+def cost(x, u, x_target):
+
+    l_pos = 5
+    l_vel = 1
+    l_ang_vel = 0.1
+    l_control = 0.01
+    l_quat = 0.01
+
     position_error = ca.sumsqr(x[0:3] - x_target[0:3])  # Position error (x, y, z)
-    # velocity_error = ca.sumsqr(x[3:6])  # Velocity error (vx, vy, vz)
-    # angular_velocity_error = ca.sumsqr(x[10:13])  # Angular velocity error
-    # control_effort = ca.sumsqr(u)  # Minimize control effort
+    velocity_error = ca.sumsqr(x[3:6] - x_target[3:6])  # Velocity error (vx, vy, vz)
+    angular_velocity_error = ca.sumsqr(x[10:13] - x_target[10:13])  # Angular velocity error
+    control_effort = ca.sumsqr(u)  # Minimize control effort
+
+    q_WB = x[6:10]
+    q_WB_target = x_target[6:10]
+    dot_product = ca.dot(q_WB, q_WB_target)
+    quaternion_error = 1 - dot_product**2
+
     
-    # # Quaternion Orientation Error (Track Orientation)
-    # qw, qx, qy, qz = x[6], x[7], x[8], x[9]
-    # qw_target, qx_target, qy_target, qz_target = x_target[6], x_target[7], x_target[8], x_target[9]
-    # dot_product = qw * qw_target + qx * qx_target + qy * qy_target + qz * qz_target
-    # dot_product = ca.fmax(-1.0, ca.fmin(1.0, dot_product))
-    # quaternion_error = 2 * ca.acos(ca.fabs(dot_product))
-    return 5 * position_error  #+ 0.1 * angular_velocity_error + 0.01 * control_effort + 4 * quaternion_error + 0.1 * velocity_error
+    return l_pos * position_error + l_vel * velocity_error + l_ang_vel * angular_velocity_error + l_control * control_effort #+ l_quat * quaternion_error
 
 
 
@@ -43,13 +50,11 @@ def solve(cost_fn, x_target, x_init, N, dt):
     X = opti.variable(nx, N+1)  # States
     U = opti.variable(nu, N)    # Controls
     
+    # minmimum normalized thrust force from each motor
+    # such that the quadcopter can hover
+    u_w_hover = 0.4293844144478733 # m * g / (4 * cf * (w_max ** 2))
     u_target = ca.DM.zeros(nu)
     u_target[0:4] = u_w_hover
-
-    test_x = x_init.full().flatten()
-    test_u = u_target.full().flatten()
-    test_next = F_rk4(test_x, test_u, 0.01)
-
 
     # Initial state constraint
     opti.subject_to(X[:,0] == x_init)
@@ -73,12 +78,11 @@ def solve(cost_fn, x_target, x_init, N, dt):
         opti.subject_to(X[:,k+1] == x_next)
             
     
-    
-    # Initial guess
 
     # Convert CasADi DMs to NumPy arrays
     x0 = np.array(x_init.full()).flatten()
     xf = np.array(x_target.full()).flatten()
+
     u_hover = np.array(u_target.full()).flatten() 
     q_start, q_end = 6, 10
 
