@@ -1,2 +1,3 @@
 /py_sim/.venv
-__pycache__
+__pycache_
+/results/_
