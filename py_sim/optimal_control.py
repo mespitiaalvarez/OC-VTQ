@@ -13,11 +13,11 @@ def main():
 
     # Target State (Hover at Z = 2 m, 45 deg roll) ===
     x_target = ca.DM.zeros(nx)
-    x_target[0] = 2# Target Z position (hover)
-    x_target[1] = 2 # Target Z position (hover)
-    x_target[2] = 2 # Target Z position (hover)
-    x_target[6] = 1 # q _a 
-    x_target[7] = 0  # q_b
+    x_target[0] = 5   
+    x_target[1] = 0   
+    x_target[2] = 1        
+    x_target[6] = 0.9063
+    x_target[7] = .4226
 
     # Initial State Constraint (Starting at rest)
     x_init = ca.DM.zeros(nx)
