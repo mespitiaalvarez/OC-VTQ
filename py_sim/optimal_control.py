@@ -32,9 +32,9 @@ def main():
     save_dir = "results"
     # Saving the optimized state trajectory (x_opt) and control inputs (u_opt)
     x_ref = ca.repmat(x_target, 1, N + 1)
-    x_ref_df = pd.DataFrame(x_ref.T)  # Transpose for saving
-    x_opt_df = pd.DataFrame(x_opt.T)  # Transpose to make each column a state
-    u_opt_df = pd.DataFrame(u_opt.T)  # Transpose to make each column a control
+    x_ref_df = pd.DataFrame(x_ref.T)  
+    x_opt_df = pd.DataFrame(x_opt.T)  
+    u_opt_df = pd.DataFrame(u_opt.T)  
 
     os.makedirs(save_dir, exist_ok=True)
     run_id = len(glob.glob(os.path.join(save_dir, "x_opt_*.csv"))) + 1

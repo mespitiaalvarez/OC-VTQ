@@ -56,7 +56,8 @@ R_WB = rotation_matrix_q(q_WB)
 v_B = ca.mtimes(R_WB.T, v_W)    # Body-frame velocity
 v_B_abs = ca.vertcat(-ca.fabs(v_B[0]) * v_B[0],
                      -ca.fabs(v_B[1]) * v_B[1],
-                     -ca.fabs(v_B[2]) * v_B[2])  # -|v_i| * v_i for each axis
+                     -ca.fabs(v_B[2]) * v_B[2])  
+
 # Drag coefficient matrix
 D_B = ca.diag([0.1, 0.1, 0.2])
 # Drag Force (in Body Frame)

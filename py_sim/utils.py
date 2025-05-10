@@ -4,7 +4,6 @@ from scipy.spatial.transform import Rotation as R, Slerp
 
 
 def quaternion_product(q1, q2): 
-    # Quaternion product
     q1 = normalize_quaternion(q1)
     q2 = normalize_quaternion(q2)
     q_prod = ca.vertcat(q1[0]*q2[0] - q1[1]*q2[1] - q1[2]*q2[2] - q1[3]*q2[3],
@@ -14,13 +13,11 @@ def quaternion_product(q1, q2):
     return q_prod
 
 def quaternion_conjugate(q):
-    # Quaternion conjugate
     q = normalize_quaternion(q)
     return ca.vertcat(q[0], -q[1], -q[2], -q[3])
 
 
 def quaternion_geo_distance(q1, q2):
-    # Quaternion geodesic distance
     q1 = normalize_quaternion(q1)
     q2 = normalize_quaternion(q2)
     q_prod = ca.dot(q1, q2)
@@ -99,27 +96,20 @@ def Y(q):
     return Y
 
 def linear_state_guess(x0, xf, N):
-    """Linearly interpolate between x0 and xf for N+1 steps."""
     return np.linspace(x0, xf, N+1).T  # shape: (state_dim, N+1)
 
 def slerp_quaternion(q0, qf, N):
-    """Spherical linear interpolation (SLERP) between two quaternions for N+1 steps.
-    Assumes quaternions are in [w, x, y, z] format.
-    Returns array of shape (N+1, 4) in [w, x, y, z] format.
-    """
-    # Convert to [x, y, z, w] for scipy
     q0_scipy = np.roll(q0, -1)
     qf_scipy = np.roll(qf, -1)
     key_rots = R.from_quat([q0_scipy, qf_scipy])
     slerp = Slerp([0, 1], key_rots)
     times = np.linspace(0, 1, N+1)
     interp_rots = slerp(times)
-    quats = interp_rots.as_quat()  # shape (N+1, 4), [x, y, z, w]
-    quats = np.roll(quats, 1, axis=1)  # back to [w, x, y, z]
+    quats = interp_rots.as_quat()  
+    quats = np.roll(quats, 1, axis=1)  
     return quats
 
 def make_X_guess(x0, xf, N, q_start, q_end):
-    """Create a state guess with linear interpolation for non-quaternion states and SLERP for quaternion."""
     X_guess = np.linspace(x0, xf, N+1).T
     q0 = x0[q_start:q_end]
     qf = xf[q_start:q_end]
@@ -128,21 +118,10 @@ def make_X_guess(x0, xf, N, q_start, q_end):
     return X_guess
 
 def constant_control_guess(u_hover, N):
-    """
-    Create a constant control guess for N steps.
-    u_hover: (nu,) array (the hover control for your drone)
-    N: number of time steps
-    Returns: (nu, N) array with each column = u_hover
-    """
     import numpy as np
     return np.tile(u_hover.reshape(-1, 1), (1, N))
 
 def best_time_guess(x0, xf):
-    """
-    Estimate the best time to reach the target state from the initial state.
-    x0: initial state
-    xf: target state
-    """
     cf = 4.0687e-7
     w_max = 4720
     t_max = cf * w_max**2  * 4

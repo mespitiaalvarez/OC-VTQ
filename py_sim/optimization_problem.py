@@ -1,6 +1,6 @@
 import casadi as ca
 import numpy as np
-from dynamics import nx, nu, f_dyn  # Make sure dynamics.py is properly set up
+from dynamics import nx, nu, f_dyn  
 from utils import normalize_quaternion, make_X_guess, constant_control_guess, quaternion_geo_distance
 from integrator import F_rk4
 
