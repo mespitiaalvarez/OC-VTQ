@@ -56,6 +56,7 @@ def solve(cost_fn, x_target, x_init, N, dt):
     u_target = ca.DM.zeros(nu)
     u_target[0:4] = u_w_hover
 
+
     # Initial state constraint
     opti.subject_to(X[:,0] == x_init)
     opti.subject_to(U[:,0] == u_target)
@@ -71,12 +72,23 @@ def solve(cost_fn, x_target, x_init, N, dt):
         opti.subject_to(opti.bounded(-1, U[8:12,k], 1))  # Roll rates
         opti.subject_to(opti.bounded(-ca.pi/2, X[13:17, k], ca.pi/2))  # Pitch limits
         opti.subject_to(opti.bounded(-ca.pi/2, X[17:21, k], ca.pi/2))  # Roll limits
+
+
+        
+        opti.subject_to(opti.bounded(-ca.pi/2, X[13:17, k], ca.pi/2))  # Pitch limits
+        opti.subject_to(opti.bounded(-ca.pi/2, X[17:21, k], ca.pi/2))  # Roll limits
     
         # Add stage cost
         J += cost_fn(x_k, u_k, x_target)
         x_next = F_rk4(x_k, u_k, dt)
         opti.subject_to(X[:,k+1] == x_next)
             
+
+    q_WB = X[6:10, -1]
+    q_WB_target = x_target[6:10]
+    dot_product = ca.dot(q_WB, q_WB_target)
+    quaternion_error = 1 - dot_product**2
+
     J += 10*ca.sumsqr(X[0:3, -1] - x_target[0:3])
 
     # Convert CasADi DMs to NumPy arrays

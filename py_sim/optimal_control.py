@@ -12,12 +12,32 @@ def main():
     N = 200
 
     # Target State (Hover at Z = 2 m, 45 deg roll) ===
-    x_target = ca.DM.zeros(nx)
-    x_target[0] = 5   
-    x_target[1] = 0   
-    x_target[2] = 1        
-    x_target[6] = 0.9063
-    x_target[7] = .4226
+
+    # Sim 1
+    # x_target = ca.DM.zeros(nx)
+    # x_target[0] = 0   
+    # x_target[1] = 0   
+    # x_target[2] = 3        
+    # x_target[6] = 1
+
+    # # Sim 2
+    # x_target = ca.DM.zeros(nx)
+    # x_target[0] = 2   
+    # x_target[1] = 2   
+    # x_target[2] = 2        
+    # x_target[6] = 0.866
+    # x_target[8] = 0.5
+
+    # # Sim 3
+    # x_target = ca.DM.zeros(nx)
+    # x_target[0] = 5   
+    # x_target[1] = 0   
+    # x_target[2] = 1        
+    # x_target[6] = 0.9063
+    # x_target[7] = 0.4226
+
+    # Sim 4
+
 
     # Initial State Constraint (Starting at rest)
     x_init = ca.DM.zeros(nx)

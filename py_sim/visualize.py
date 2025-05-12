@@ -9,7 +9,9 @@ from optimal_control import dt
 def main():
     # === Load NMPC Results === #
     use('TkAgg')  # or 'Qt5Agg', 'Agg', etc.
-    number = "3"
+    number = "1"
+
+    
 
     str_xopt = "results/x_opt_" + number + ".csv"
     str_uopt = "results/u_opt_" + number + ".csv"
@@ -25,6 +27,97 @@ def main():
     x_ref = x_ref_df.values.T  # Transpose back to match original format (nx, N+1)
 
     time = np.linspace(0, x_opt.shape[1] * dt, x_opt.shape[1])  # Adjust for your dt
+
+    # === Quadcopter Animation === #
+    # Quadcopter Parameters
+    l = 0.3  # Arm length (adjust as needed)
+    N = x_opt.shape[1]
+
+    def quaternion_to_rotation_matrix(qw, qx, qy, qz):
+        """Converts a quaternion to a 3x3 rotation matrix."""
+        R = np.zeros((3, 3))
+        R[0, 0] = 1 - 2 * (qy ** 2 + qz ** 2)
+        R[0, 1] = 2 * (qx * qy - qz * qw)
+        R[0, 2] = 2 * (qx * qz + qy * qw)
+        
+        R[1, 0] = 2 * (qx * qy + qz * qw)
+        R[1, 1] = 1 - 2 * (qx ** 2 + qz ** 2)
+        R[1, 2] = 2 * (qy * qz - qx * qw)
+        
+        R[2, 0] = 2 * (qx * qz - qy * qw)
+        R[2, 1] = 2 * (qy * qz + qx * qw)
+        R[2, 2] = 1 - 2 * (qx ** 2 + qy ** 2)
+        return R
+
+    # Motor Yaw Angles 
+    psi = [np.pi / 4 + i * np.pi / 2 for i in range(4)]
+
+    # Initialize 3D Plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Animation Loop (Real-Time)
+    for t in range(N):
+        ax.clear()
+        ax.set_title("Quadcopter Pose and Motor Positions")
+        ax.set_xlabel("X Position (m)")
+        ax.set_ylabel("Y Position (m)")
+        ax.set_zlabel("Z Position (m)")
+
+        x_pos, y_pos, z_pos = x_opt[0, t], x_opt[1, t], x_opt[2, t]
+        qw, qx, qy, qz = x_opt[6, t], x_opt[7, t], x_opt[8, t], x_opt[9, t]
+        
+        R = quaternion_to_rotation_matrix(qw, qx, qy, qz)
+
+        # Motor Positions in Body Frame 
+        motors_local = np.array([
+            [l * np.cos(psi[0]), l * np.sin(psi[0]), 0],  # Motor 1
+            [l * np.cos(psi[1]), l * np.sin(psi[1]), 0],  # Motor 2
+            [l * np.cos(psi[2]), l * np.sin(psi[2]), 0],  # Motor 3
+            [l * np.cos(psi[3]), l * np.sin(psi[3]), 0]   # Motor 4
+        ])
+
+        # Rotate Motors to World Frame
+        motors_world = (R @ motors_local.T).T  # Rotate each motor
+        motors_world[:, 0] += x_pos  # Translate to current position
+        motors_world[:, 1] += y_pos
+        motors_world[:, 2] += z_pos
+
+        # Plot Quadcopter Body 
+        for i in range(4):
+            ax.plot(
+                [x_pos, motors_world[i, 0]], 
+                [y_pos, motors_world[i, 1]], 
+                [z_pos, motors_world[i, 2]], 
+                color='black', linestyle='--'
+            )
+
+        # Plot Motors and Thrust Directions
+        for i in range(4):
+            ax.scatter(*motors_world[i], color='red', label=f'Motor {i+1}' if t == 0 else "")
+            thrust_direction = R @ np.array([0, 0, 0.15])  # Thrust direction in Z-axis
+            ax.quiver(
+                motors_world[i, 0], motors_world[i, 1], motors_world[i, 2],  # Motor Position
+                thrust_direction[0], thrust_direction[1], thrust_direction[2],  # Thrust Vector
+                color='blue', length=0.15, normalize=True, arrow_length_ratio=0.2
+            )
+
+        # Plot Drone Position (Body)
+        ax.scatter(x_pos, y_pos, z_pos, color='green', s=100, label="Quadcopter Body" if t == 0 else "")
+
+        # Set Moving   Limits 
+        moving_lim = True
+        if moving_lim:
+            ax.set_xlim(x_pos - 1.5, x_pos + 1.5)
+            ax.set_ylim(y_pos - 1.5, y_pos + 1.5)
+            ax.set_zlim(z_pos - 0.2, z_pos + 0.5)
+
+        else:
+            ax.set_xlim(-5,5)
+            ax.set_ylim(-5,5)
+            ax.set_zlim(-5,5)
+
+        plt.pause(dt)  # Small delay for animation
 
     # === 3D Path Visualization === #
     x_traj = x_opt[0, :]  # X positions from NMPC
@@ -117,96 +210,7 @@ def main():
     plt.ylabel("Altitude (m)")
     plt.grid(True)
 
-    # === Quadcopter Animation === #
-    # Quadcopter Parameters
-    l = 0.3  # Arm length (adjust as needed)
-    N = x_opt.shape[1]
 
-    def quaternion_to_rotation_matrix(qw, qx, qy, qz):
-        """Converts a quaternion to a 3x3 rotation matrix."""
-        R = np.zeros((3, 3))
-        R[0, 0] = 1 - 2 * (qy ** 2 + qz ** 2)
-        R[0, 1] = 2 * (qx * qy - qz * qw)
-        R[0, 2] = 2 * (qx * qz + qy * qw)
-        
-        R[1, 0] = 2 * (qx * qy + qz * qw)
-        R[1, 1] = 1 - 2 * (qx ** 2 + qz ** 2)
-        R[1, 2] = 2 * (qy * qz - qx * qw)
-        
-        R[2, 0] = 2 * (qx * qz - qy * qw)
-        R[2, 1] = 2 * (qy * qz + qx * qw)
-        R[2, 2] = 1 - 2 * (qx ** 2 + qy ** 2)
-        return R
-
-    # Motor Yaw Angles 
-    psi = [np.pi / 4 + i * np.pi / 2 for i in range(4)]
-
-    # Initialize 3D Plot
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    # Animation Loop (Real-Time)
-    for t in range(N):
-        ax.clear()
-        ax.set_title("Quadcopter Pose and Motor Positions")
-        ax.set_xlabel("X Position (m)")
-        ax.set_ylabel("Y Position (m)")
-        ax.set_zlabel("Z Position (m)")
-
-        x_pos, y_pos, z_pos = x_opt[0, t], x_opt[1, t], x_opt[2, t]
-        qw, qx, qy, qz = x_opt[6, t], x_opt[7, t], x_opt[8, t], x_opt[9, t]
-        
-        R = quaternion_to_rotation_matrix(qw, qx, qy, qz)
-
-        # Motor Positions in Body Frame 
-        motors_local = np.array([
-            [l * np.cos(psi[0]), l * np.sin(psi[0]), 0],  # Motor 1
-            [l * np.cos(psi[1]), l * np.sin(psi[1]), 0],  # Motor 2
-            [l * np.cos(psi[2]), l * np.sin(psi[2]), 0],  # Motor 3
-            [l * np.cos(psi[3]), l * np.sin(psi[3]), 0]   # Motor 4
-        ])
-
-        # Rotate Motors to World Frame
-        motors_world = (R @ motors_local.T).T  # Rotate each motor
-        motors_world[:, 0] += x_pos  # Translate to current position
-        motors_world[:, 1] += y_pos
-        motors_world[:, 2] += z_pos
-
-        # Plot Quadcopter Body 
-        for i in range(4):
-            ax.plot(
-                [x_pos, motors_world[i, 0]], 
-                [y_pos, motors_world[i, 1]], 
-                [z_pos, motors_world[i, 2]], 
-                color='black', linestyle='--'
-            )
-
-        # Plot Motors and Thrust Directions
-        for i in range(4):
-            ax.scatter(*motors_world[i], color='red', label=f'Motor {i+1}' if t == 0 else "")
-            thrust_direction = R @ np.array([0, 0, 0.15])  # Thrust direction in Z-axis
-            ax.quiver(
-                motors_world[i, 0], motors_world[i, 1], motors_world[i, 2],  # Motor Position
-                thrust_direction[0], thrust_direction[1], thrust_direction[2],  # Thrust Vector
-                color='blue', length=0.15, normalize=True, arrow_length_ratio=0.2
-            )
-
-        # Plot Drone Position (Body)
-        ax.scatter(x_pos, y_pos, z_pos, color='green', s=100, label="Quadcopter Body" if t == 0 else "")
-
-        # Set Moving   Limits 
-        moving_lim = True
-        if moving_lim:
-            ax.set_xlim(x_pos - 1.5, x_pos + 1.5)
-            ax.set_ylim(y_pos - 1.5, y_pos + 1.5)
-            ax.set_zlim(z_pos - 0.2, z_pos + 0.5)
-
-        else:
-            ax.set_xlim(-5,5)
-            ax.set_ylim(-5,5)
-            ax.set_zlim(-5,5)
-
-        plt.pause(dt)  # Small delay for animation
         
     plt.show()
 
