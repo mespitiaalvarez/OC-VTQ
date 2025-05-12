@@ -26,7 +26,7 @@ def main():
     u_opt = u_opt_df.values.T  
     x_ref = x_ref_df.values.T  # Transpose back to match original format (nx, N+1)
 
-    time = np.linspace(0, x_opt.shape[1] * dt, x_opt.shape[1])  # Adjust for your dt
+    time = np.linspace(0, x_opt.shape[1] * dt, x_opt.shape[1])  
 
     # === Quadcopter Animation === #
     # Quadcopter Parameters
